@@ -16,6 +16,7 @@ import (
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/azuredns"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/clouddns"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/cloudflare"
+	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/digitalocean"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/route53"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 )
@@ -176,6 +177,18 @@ func (s *Solver) solverForIssuerProvider(issuer v1alpha1.GenericIssuer, provider
 		impl, err = s.dnsProviderConstructors.cloudFlare(email, apiKey)
 		if err != nil {
 			return nil, fmt.Errorf("error instantiating cloudflare challenge solver: %s", err)
+		}
+	case providerConfig.DigitalOcean != nil:
+		apiTokenSecret, err := s.secretLister.Secrets(s.resourceNamespace).Get(providerConfig.DigitalOcean.Token.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting digitalocean token: %s", err.Error())
+		}
+
+		apiToken := string(apiTokenSecret.Data[providerConfig.DigitalOcean.Token.Key])
+
+		impl, err = digitalocean.NewDNSProviderCredentials(apiToken)
+		if err != nil {
+			return nil, fmt.Errorf("error instantiating digitalocean challenge solver: %s", err.Error())
 		}
 	case providerConfig.Route53 != nil:
 		secretAccessKey := ""
